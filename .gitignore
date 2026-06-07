@@ -1,2 +1,6 @@
 builddir/
-a.out
+.env/
+*.bin
+*.o
+*.iso
+
