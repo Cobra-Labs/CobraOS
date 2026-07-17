@@ -35,7 +35,8 @@ sources = files(
   'src/arch/tss.cpp',
   'src/arch/syscall.cpp',
   'src/kernel/process.cpp',
-  'src/kernel/tar.cpp'
+  'src/kernel/tar.cpp',
+  'src/kernel/elf.cpp'
 )
 
 inc = include_directories('src/include')
@@ -60,6 +61,7 @@ shell_script = '''
   cp @INPUT@ build_iso/iso_root/boot/
   cp ''' + limine_dir + '''/limine-bios-cd.bin build_iso/iso_root/
   cp ''' + limine_dir + '''/limine-uefi-cd.bin build_iso/iso_root/
+  cp ''' + limine_dir + '''/limine-bios.sys build_iso/iso_root/boot/limine/
   cp ''' + src_root + '''/esp/boot/limine.conf build_iso/iso_root/boot/
   cp ''' + src_root + '''/esp/boot/initramfs.tar build_iso/iso_root/boot/
   ''' + xorriso.full_path() + ''' -as mkisofs -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table --efi-boot limine-uefi-cd.bin -no-emul-boot build_iso/iso_root -o @OUTPUT@

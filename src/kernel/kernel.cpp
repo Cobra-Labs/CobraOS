@@ -9,6 +9,7 @@
 #include "../arch/syscall.h"
 #include "process.h"
 #include "tar.h"
+#include "elf.h"
 
 // --- Limine Setup ---
 #define LIMINE_REQ __attribute__((used, section(".limine_requests")))
@@ -29,6 +30,41 @@ struct limine_file {
     struct { uint64_t a, b; } gpt_disk_uuid;
     struct { uint64_t a, b; } gpt_part_uuid;
     struct { uint64_t a, b; } part_uuid;
+};
+
+struct limine_framebuffer {
+    void* address;
+    uint64_t width;
+    uint64_t height;
+    uint64_t pitch;
+    uint16_t bpp;
+    uint8_t memory_model;
+    uint8_t red_mask_size;
+    uint8_t red_mask_shift;
+    uint8_t green_mask_size;
+    uint8_t green_mask_shift;
+    uint8_t blue_mask_size;
+    uint8_t blue_mask_shift;
+    uint8_t unused[7];
+    uint64_t edid_size;
+    void* edid;
+};
+
+struct limine_framebuffer_response {
+    uint64_t revision;
+    uint64_t framebuffer_count;
+    struct limine_framebuffer** framebuffers;
+};
+
+struct limine_framebuffer_request {
+    uint64_t id[4];
+    uint64_t revision;
+    struct limine_framebuffer_response* response;
+};
+
+static volatile struct limine_framebuffer_request framebuffer_request LIMINE_REQ = {
+    .id = { LIMINE_COMMON_MAGIC, 0x9d5827dcd881dd75, 0xa3148604f6fab11b },
+    .revision = 0, .response = nullptr
 };
 
 struct limine_module_response {
@@ -210,12 +246,22 @@ extern "C" [[noreturn]] void kmain(void) {
     const uint8_t* file = tar_find(tar, mod->size, "./init", &file_size);
 
     if (file != nullptr) {
-        qemu_print("init gefunden! Inhalt: ");
-        for (uint64_t i = 0; i < file_size; i++)
-            asm volatile("outb %0, %1" :: "a"((uint8_t)file[i]), "Nd"((uint16_t)0xE9));
-        qemu_print("\n");
+        qemu_print("init gefunden!\n");
     } else {
         qemu_print("init nicht gefunden!\n");
+    }
+    
+    if (framebuffer_request.response != nullptr && framebuffer_request.response->framebuffer_count > 0) {
+        limine_framebuffer* fb = framebuffer_request.response->framebuffers[0];
+        qemu_print("Framebuffer gefunden: ");
+        qemu_print_hex(fb->width);
+        qemu_print(" x ");
+        qemu_print_hex(fb->height);
+        qemu_print(" @ ");
+        qemu_print_hex(fb->bpp);
+        qemu_print(" bpp\n");
+    } else {
+        qemu_print("Kein Framebuffer!\n");
     }
 
     static uint8_t pm_storage[sizeof(ProcessManager)];
@@ -225,36 +271,21 @@ extern "C" [[noreturn]] void kmain(void) {
 
     g_pm->init(g_pmm, g_vmm);
 
-    // Test-Code Frame allozieren
-    void* code_frame = g_pmm->alloc_frame();
-    uint64_t code_phys = (uint64_t)code_frame;
-    uint64_t code_virt = 0x400000;
+    if (file != nullptr) {
+        PageTable* proc_as = g_vmm->create_address_space();
+        uint64_t entry = elf_load(g_vmm, g_pmm, proc_as, file, file_size);
 
-    uint8_t* dst = (uint8_t*)(code_phys + hhdm);
-    
-    const char* msg = "Hello";
-    uint8_t* str_dst = dst + 0x100;
-    for (int i = 0; i < 5; i++) str_dst[i] = msg[i];
+        if (entry == 0) {
+            qemu_print("ELF ungueltig!\n");
+        } else {
+            uint64_t user_stack_top = 0x7FFFFFFFF000; // page-aligned, kanonisch lower half
+            g_pm->start(proc_as, entry, user_stack_top);
+        }
+    } else {
+        qemu_print("init nicht gefunden!\n");
+    }
 
-    // Code in Frame kopieren
-    uint8_t test_code[] = {
-        // mov rax, 1  (print syscall)
-        0x48, 0xC7, 0xC0, 0x01, 0x00, 0x00, 0x00,
-        // mov rdi, 0x400100  (string adresse)
-        0x48, 0xBF, 0x00, 0x01, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
-        // mov rsi, 5  (länge)
-        0x48, 0xC7, 0xC6, 0x05, 0x00, 0x00, 0x00,
-        // syscall
-        0x0F, 0x05,
-        // jmp $ (endlosschleife)
-        0xEB, 0xFE
-    };
-    for (size_t i = 0; i < sizeof(test_code); i++) dst[i] = test_code[i];
 
-    // Frame mit USER-Flag mappen
-    g_vmm->map_page(code_virt, code_phys, PAGE_PRESENT | PAGE_USER);
-
-    g_pm->start(code_virt, 0x501000);
 
     qemu_print("CobraOS booted!\n");
     while (true) asm volatile("hlt");

@@ -15,38 +15,29 @@ static void* memset(void* ptr, int value, size_t size) {
 }
 
 void PMM::init(limine_memmap_response* memmap, uint64_t hhdm) {
-
     bitmap = nullptr;
-
-    // Schritt 1: höchste Adresse finden
     uint64_t highest = 0;
     for (size_t i = 0; i < memmap->entry_count; i++) {
         limine_memmap_entry* entry = memmap->entries[i];
         uint64_t end = entry->base + entry->length;
         if (end > highest) highest = end;
     }
-
     frame_count = highest / 4096;
     size_t bit_count = frame_count / 8;
 
-    // Schritt 2: Block für Bitmap finden — jetzt mit Debugging
+    uint64_t bitmap_phys = 0;   // NEU: physische Adresse merken
     for (size_t i = 0; i < memmap->entry_count; i++) {
         limine_memmap_entry* entry = memmap->entries[i];
-        if (entry->type == 0) {
-            if (entry->length >= bit_count) {
-                bitmap = (uint64_t*)(entry->base + hhdm);
-                break;
-            }
+        if (entry->type == 0 && entry->length >= bit_count) {
+            bitmap_phys = entry->base;              // NEU
+            bitmap = (uint64_t*)(entry->base + hhdm);
+            break;
         }
     }
-
-    if (bitmap == nullptr) {
-        while (true) asm volatile("hlt");
-    }
+    if (bitmap == nullptr) { while (true) asm volatile("hlt"); }
 
     memset(bitmap, 0xFF, bit_count);
 
-    // Schritt 3: usable Blöcke als frei markieren
     for (size_t i = 0; i < memmap->entry_count; i++) {
         limine_memmap_entry* entry = memmap->entries[i];
         if (entry->type == 0) {
@@ -54,6 +45,13 @@ void PMM::init(limine_memmap_response* memmap, uint64_t hhdm) {
             size_t count = entry->length / 4096;
             for (size_t j = 0; j < count; j++) clear_bit(start + j);
         }
+    }
+
+    // NEU: Frames, in denen die Bitmap selbst liegt, wieder als belegt markieren
+    size_t bitmap_start_frame = bitmap_phys / 4096;
+    size_t bitmap_frame_count = (bit_count + 4095) / 4096;
+    for (size_t j = 0; j < bitmap_frame_count; j++) {
+        set_bit(bitmap_start_frame + j);
     }
 
     hhdm_offset = hhdm;

@@ -29,6 +29,9 @@ class VMM {
 
 		void init(PMM* pmm);
 		void map_page(uint64_t virt, uint64_t phys, uint64_t flags);
+        void map_page_in(PageTable* target, uint64_t virt, uint64_t phys, uint64_t flags);
+        PageTable* create_address_space();
+        uint64_t get_phys(PageTable* table);
 		void activate();
 	
 	private:

@@ -18,6 +18,6 @@ class ProcessManager {
 
 	public:
 		void init(PMM* pmm, VMM* vmm);
-		void start(uint64_t entry_point, uint64_t stack_pointer);
-		void kill(uint64_t pid);
+		void start(PageTable* address_space, uint64_t entry_point, uint64_t stack_pointer);
+        void kill(uint64_t pid);
 };
