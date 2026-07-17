@@ -1,0 +1,36 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential meson ninja-build xorriso git nasm
+    - name: Download Limine
+      run: |
+        git clone https://github.com/limine-bootloader/limine.git --branch=v7.x-binary --depth=1
+        cd limine && sudo make install && cd ..
+    - name: Setup Meson
+      run: meson setup build
+    - name: Build CobraOS
+      run: meson compile -C build
+    - name: Check ISO creation
+      run: |
+        ls -lah build/cobraos.iso
+        file build/cobraos.iso
+    - name: Upload ISO artifact
+      uses: actions/upload-artifact@v3
+      if: success()
+      with:
+        name: cobraos-iso
+        path: build/cobraos.iso
+        retention-days: 7
