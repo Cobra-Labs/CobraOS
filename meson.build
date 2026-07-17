@@ -56,20 +56,35 @@ sh = find_program('sh')
 limine_dir = '/usr/share/limine'
 src_root = meson.project_source_root()
 
+subdir('libc')       # definiert cobra_libc + libc_inc
+subdir('userspace')  # definiert init_elf, nutzt cobra_libc + libc_inc
+
+# init.elf -> initramfs.tar mit Eintrag "./init", passend zu tar_find() im Kernel
+initramfs_tar = custom_target('initramfs_tar',
+  input: init_elf,
+  output: 'initramfs.tar',
+  command: [sh, '-c',
+    'mkdir -p @OUTDIR@/initramfs_root && ' +
+    'cp @INPUT@ @OUTDIR@/initramfs_root/init && ' +
+    'tar -cf @OUTPUT@ -C @OUTDIR@/initramfs_root ./init'
+  ],
+  build_by_default: true,
+)
+
 shell_script = '''
   mkdir -p build_iso/iso_root/boot/limine
-  cp @INPUT@ build_iso/iso_root/boot/
+  cp @INPUT0@ build_iso/iso_root/boot/
   cp ''' + limine_dir + '''/limine-bios-cd.bin build_iso/iso_root/
   cp ''' + limine_dir + '''/limine-uefi-cd.bin build_iso/iso_root/
   cp ''' + limine_dir + '''/limine-bios.sys build_iso/iso_root/boot/limine/
   cp ''' + src_root + '''/esp/boot/limine.conf build_iso/iso_root/boot/
-  cp ''' + src_root + '''/esp/boot/initramfs.tar build_iso/iso_root/boot/
+  cp @INPUT1@ build_iso/iso_root/boot/initramfs.tar
   ''' + xorriso.full_path() + ''' -as mkisofs -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table --efi-boot limine-uefi-cd.bin -no-emul-boot build_iso/iso_root -o @OUTPUT@
   ''' + limine.full_path() + ''' bios-install @OUTPUT@
 '''
 
 iso_target = custom_target('cobraos_iso',
-  input: kernel_elf,
+  input: [kernel_elf, initramfs_tar],
   output: 'cobraos.iso',
   build_by_default: true,
   command: [sh, '-c', shell_script]

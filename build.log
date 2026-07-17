@@ -1,0 +1,53 @@
+ninja: Entering directory `/home/janwin443/Documents/CobraOS/build_iso'
+[1/20] Compiling C++ object libc/libc.a.p/src_crt0.S.o
+[2/20] Compiling C++ object libc/libc.a.p/src_syscall.S.o
+[3/20] Compiling C++ object libc/libc.a.p/src_unistd.cpp.o
+FAILED: [code=1] libc/libc.a.p/src_unistd.cpp.o 
+c++ -Ilibc/libc.a.p -Ilibc -I../libc -I../libc/include -fdiagnostics-color=always -D_GLIBCXX_ASSERTIONS=1 -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -std=c++20 -O1 -g -ffreestanding -fno-stack-protector -mno-sse -mno-sse2 -mno-mmx -mno-80387 -MD -MQ libc/libc.a.p/src_unistd.cpp.o -MF libc/libc.a.p/src_unistd.cpp.o.d -o libc/libc.a.p/src_unistd.cpp.o -c ../libc/src/unistd.cpp
+../libc/src/unistd.cpp:10:17: error: Redefinition von »long int write(int, const void*, size_t)«
+   10 | extern "C" long write(int fd, const void* buf, size_t count) {
+      |                 ^~~~~
+../libc/src/unistd.cpp:5:17: note: »long int write(int, const void*, size_t)« wurde bereits hier definiert
+    5 | extern "C" long write(int fd, const void* buf, size_t count) {
+      |                 ^~~~~
+[4/20] Compiling C++ object userspace/init.elf.p/init.cpp.o
+[5/20] Compiling C++ object cobraos.elf.p/src_arch_tss.cpp.o
+[6/20] Compiling C++ object cobraos.elf.p/src_arch_gdt.cpp.o
+[7/20] Compiling C++ object cobraos.elf.p/src_arch_apic.cpp.o
+[8/20] Compiling C++ object cobraos.elf.p/src_paging_vmm.cpp.o
+[9/20] Compiling C++ object cobraos.elf.p/src_arch_syscall.cpp.o
+../src/arch/syscall.cpp: In function »uint64_t syscall_dispatch(uint64_t, uint64_t, uint64_t, uint64_t)«:
+../src/arch/syscall.cpp:46:10: warning: Variable »pmm« wird nicht verwendet [-Wunused-variable]
+   46 |     PMM* pmm = (PMM*)g_pmm;
+      |          ^~~
+../src/arch/syscall.cpp:47:10: warning: Variable »vmm« wird nicht verwendet [-Wunused-variable]
+   47 |     VMM* vmm = (VMM*)g_vmm;
+      |          ^~~
+../src/arch/syscall.cpp:45:90: warning: unverwendeter Parameter »arg3« [-Wunused-parameter]
+   45 | extern "C" uint64_t syscall_dispatch(uint64_t nr, uint64_t arg1, uint64_t arg2, uint64_t arg3) {
+      |                                                                                 ~~~~~~~~~^~~~
+[10/20] Compiling C++ object cobraos.elf.p/src_paging_pmm.cpp.o
+[11/20] Compiling C++ object cobraos.elf.p/src_kernel_kernel.cpp.o
+[12/20] Compiling C++ object cobraos.elf.p/src_arch_idt.cpp.o
+../src/arch/idt.cpp: In function »void page_fault_handler(InterruptFrame*, uint64_t)«:
+../src/arch/idt.cpp:20:41: warning: unverwendeter Parameter »frame« [-Wunused-parameter]
+   20 | void page_fault_handler(InterruptFrame* frame, uint64_t error_code) {
+      |                         ~~~~~~~~~~~~~~~~^~~~~
+../src/arch/idt.cpp: In function »void gpf_handler(InterruptFrame*, uint64_t)«:
+../src/arch/idt.cpp:37:34: warning: unverwendeter Parameter »frame« [-Wunused-parameter]
+   37 | void gpf_handler(InterruptFrame* frame, uint64_t error_code) {
+      |                  ~~~~~~~~~~~~~~~~^~~~~
+../src/arch/idt.cpp: In function »void double_fault_handler(InterruptFrame*, uint64_t)«:
+../src/arch/idt.cpp:45:43: warning: unverwendeter Parameter »frame« [-Wunused-parameter]
+   45 | void double_fault_handler(InterruptFrame* frame, uint64_t error_code) {
+      |                           ~~~~~~~~~~~~~~~~^~~~~
+../src/arch/idt.cpp:45:59: warning: unverwendeter Parameter »error_code« [-Wunused-parameter]
+   45 | void double_fault_handler(InterruptFrame* frame, uint64_t error_code) {
+      |                                                  ~~~~~~~~~^~~~~~~~~~
+../src/arch/idt.cpp: In function »void invalid_opcode_handler(InterruptFrame*)«:
+../src/arch/idt.cpp:51:45: warning: unverwendeter Parameter »frame« [-Wunused-parameter]
+   51 | void invalid_opcode_handler(InterruptFrame* frame) {
+      |                             ~~~~~~~~~~~~~~~~^~~~~
+ninja: build stopped: subcommand failed.
+INFO: autodetecting backend as ninja
+INFO: calculating backend command to run: /usr/bin/ninja -C /home/janwin443/Documents/CobraOS/build_iso
