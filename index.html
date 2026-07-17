@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CobraOS - A modern, high-performance x86_64 microkernel operating system written in C++">
+    <meta name="keywords" content="operating system, microkernel, OS, x86_64, C++, open source">
+    <title>CobraOS - Modern Microkernel OS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #FF6B35;
+            --secondary: #004E89;
+            --dark: #1a1a1a;
+            --light: #f5f5f5;
+            --accent: #00D4FF;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #fafafa;
+        }
+
+        /* Navigation */
+        nav {
+            background: linear-gradient(135deg, var(--secondary) 0%, #003a6f 100%);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: var(--accent);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--secondary) 0%, #1a3a52 100%);
+            color: white;
+            padding: 8rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(0,212,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            font-weight: 800;
+            letter-spacing: -2px;
+            animation: slideDown 0.8s ease;
+        }
+
+        .hero .tagline {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+            animation: slideUp 0.8s ease 0.2s both;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: slideUp 0.8s ease 0.4s both;
+        }
+
+        .btn {
+            padding: 0.9rem 2rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #ff5520;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: white;
+            color: var(--secondary);
+            transform: translateY(-2px);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--secondary);
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.8rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.7;
+        }
+
+        /* Status Section */
+        .status {
+            background: linear-gradient(135deg, #f5f5f5 0%, #eee 100%);
+            padding: 4rem 2rem;
+            margin: 3rem 0;
+        }
+
+        .status-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .status-item {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        .status-item h4 {
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .status-label {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .status-done {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-progress {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-planned {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        /* Architecture Section */
+        .architecture {
+            padding: 5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .architecture-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .architecture-text h3 {
+            color: var(--secondary);
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .architecture-text p {
+            color: #666;
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        .architecture-box {
+            background: linear-gradient(135deg, var(--secondary), #1a3a52);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        @media (max-width: 768px) {
+            .architecture-content {
+                grid-template-columns: 1fr;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            nav ul {
+                gap: 0.5rem;
+            }
+        }
+
+        /* Roadmap Section */
+        .roadmap {
+            background: #f5f5f5;
+            padding: 5rem 2rem;
+        }
+
+        .roadmap-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .roadmap-item {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            align-items: flex-start;
+        }
+
+        .roadmap-marker {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .roadmap-content h4 {
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--secondary);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 3rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+            margin: 0 1rem;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Animations */
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .highlight {
+            color: var(--primary);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#roadmap">Roadmap</a></li>
+            <li><a href="https://github.com/Cobra-Labs/CobraOS" target="_blank">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>🐍 CobraOS</h1>
+            <p class="tagline">A modern, high-performance <span class="highlight">x86_64 microkernel</span> operating system written in C++</p>
+            <div class="cta-buttons">
+                <a href="https://github.com/Cobra-Labs/CobraOS" class="btn btn-primary">View on GitHub</a>
+                <a href="#features" class="btn btn-secondary">Learn More</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <h2 class="section-title">Why CobraOS?</h2>
+        <p class="section-subtitle">Building a modern OS with security, stability, and performance in mind</p>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Security First</h3>
+                <p>Microkernel architecture isolates system services into unprivileged userspace, dramatically reducing the attack surface.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>High Performance</h3>
+                <p>Optimized x86_64 implementation with efficient IPC, paging, and memory management for modern hardware.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🏗️</div>
+                <h3>Minimalist Kernel</h3>
+                <p>Core kernel stays under 10,000 lines of code - auditable, maintainable, and focused on essential primitives.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📦</div>
+                <h3>POSIX Compliant</h3>
+                <p>Standard Unix paths and native ELF64 binary support enable compatibility with existing Unix tools and applications.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>W^X Protection</h3>
+                <p>Write XOR Execute permissions and NX bits on page tables prevent buffer-overflow exploits.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3>Open Source</h3>
+                <p>GPL-3.0 licensed - fully transparent development with community contributions welcome.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Status Section -->
+    <section class="status">
+        <div class="status-container">
+            <h2 class="section-title">Current Status</h2>
+            <p class="section-subtitle">Progress towards v1.0</p>
+            
+            <div class="status-grid">
+                <div class="status-item">
+                    <h4>✅ Memory Management</h4>
+                    <p>PMM and VMM with advanced paging and W^X protection</p>
+                    <span class="status-label status-done">Implemented</span>
+                </div>
+                
+                <div class="status-item">
+                    <h4>✅ CPU Initialization</h4>
+                    <p>GDT, IDT, TSS, APIC, and interrupt handling</p>
+                    <span class="status-label status-done">Implemented</span>
+                </div>
+                
+                <div class="status-item">
+                    <h4>✅ System Calls</h4>
+                    <p>System V AMD64 ABI compliant syscall dispatch</p>
+                    <span class="status-label status-done">Implemented</span>
+                </div>
+                
+                <div class="status-item">
+                    <h4>⏳ VFS / EXT2</h4>
+                    <p>Virtual filesystem with read-only EXT2 support</p>
+                    <span class="status-label status-progress">In Progress</span>
+                </div>
+                
+                <div class="status-item">
+                    <h4>📋 GUI/Window System</h4>
+                    <p>Display server and window manager</p>
+                    <span class="status-label status-planned">Planned</span>
+                </div>
+                
+                <div class="status-item">
+                    <h4>🎮 Doom Milestone</h4>
+                    <p>ELF64 Doom port running natively</p>
+                    <span class="status-label status-planned">Planned</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section class="architecture" id="architecture">
+        <div class="architecture-content">
+            <div class="architecture-text">
+                <h3>Microkernel Architecture</h3>
+                <p>Unlike monolithic kernels, CobraOS isolates system services into independent userspace processes. This design drastically reduces kernel complexity and improves system resilience.</p>
+                
+                <p><strong>Core Components:</strong></p>
+                <ul style="margin-left: 1rem; color: #666;">
+                    <li>Thread scheduling</li>
+                    <li>Virtual memory management</li>
+                    <li>Inter-process communication (IPC)</li>
+                </ul>
+                
+                <p style="margin-top: 1rem;"><strong>Userspace Services:</strong></p>
+                <ul style="margin-left: 1rem; color: #666;">
+                    <li>Filesystem servers</li>
+                    <li>Device drivers</li>
+                    <li>GUI/Display server</li>
+                    <li>Network stack</li>
+                </ul>
+            </div>
+            
+            <div class="architecture-box">
+Ring 0 (Kernel)<br>
+├─ PMM/VMM<br>
+├─ Scheduler<br>
+├─ IPC<br>
+└─ Syscall Dispatcher<br>
+<br>
+Ring 3 (Userspace)<br>
+├─ Init (PID 1)<br>
+├─ VFS Server<br>
+├─ Display Server<br>
+├─ Device Drivers<br>
+└─ Applications
+            </div>
+        </div>
+    </section>
+
+    <!-- Roadmap Section -->
+    <section class="roadmap" id="roadmap">
+        <div class="roadmap-container">
+            <h2 class="section-title">Roadmap to v1.0</h2>
+            
+            <div class="roadmap-item">
+                <div class="roadmap-marker">1</div>
+                <div class="roadmap-content">
+                    <h4>Core VFS/EXT2 Completion</h4>
+                    <p>Finalize read-write filesystem support and integration with userspace services.</p>
+                </div>
+            </div>
+            
+            <div class="roadmap-item">
+                <div class="roadmap-marker">2</div>
+                <div class="roadmap-content">
+                    <h4>GUI & Window System</h4>
+                    <p>Implement display server, window manager, and basic GUI framework with event handling.</p>
+                </div>
+            </div>
+            
+            <div class="roadmap-item">
+                <div class="roadmap-marker">3</div>
+                <div class="roadmap-content">
+                    <h4>Doom Milestone</h4>
+                    <p>Port and run Doom natively on CobraOS to validate system completeness.</p>
+                </div>
+            </div>
+            
+            <div class="roadmap-item">
+                <div class="roadmap-marker">4</div>
+                <div class="roadmap-content">
+                    <h4>Win32 Compatibility Layer</h4>
+                    <p>Optional userspace PE loader and Win32 API subsystem for legacy application support.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Cobra-Labs. CobraOS is licensed under <a href="https://github.com/Cobra-Labs/CobraOS/blob/main/LICENSE">GPL-3.0</a></p>
+        <div style="margin-top: 1rem;">
+            <a href="https://github.com/Cobra-Labs/CobraOS">GitHub</a>
+            <a href="https://github.com/Cobra-Labs/CobraOS/issues">Issues</a>
+            <a href="https://github.com/Cobra-Labs/CobraOS/blob/main/CONTRIBUTING.md">Contributing</a>
+        </div>
+    </footer>
+</body>
+</html>
