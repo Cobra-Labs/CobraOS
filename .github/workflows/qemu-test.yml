@@ -10,7 +10,7 @@ jobs:
   qemu-test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -25,7 +25,7 @@ jobs:
       run: meson compile -C build
     - name: Boot in QEMU
       run: |
-        timeout 10 qemu-system-x86_64 -cdrom build/cobraos.iso -display none -serial stdio -m 256M 2>&1 | tee qemu-output.log || true
+        timeout 10 qemu-system-x86_64 -cdrom build/cobraos.iso -display none -debugcon stdio -m 256M 2>&1 | tee qemu-output.log || true
     - name: Check boot output
       run: |
         if grep -q "CobraOS booted" qemu-output.log; then
@@ -37,7 +37,7 @@ jobs:
           exit 1
         fi
     - name: Upload QEMU log
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: qemu-output
