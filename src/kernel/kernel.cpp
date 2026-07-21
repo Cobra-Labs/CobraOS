@@ -343,6 +343,8 @@ extern "C" [[noreturn]] void kmain(void) {
         }
     }
 
+    qemu_print("CobraOS booted!\n");
+    
     if (init_file == nullptr) {
         qemu_print("init nicht in ext2 gefunden, Fallback auf Tar-Initramfs!\n");
         init_file = file;
