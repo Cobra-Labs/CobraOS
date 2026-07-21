@@ -3,5 +3,5 @@ builddir/
 *.bin
 *.o
 *.iso
-.gitignore
-
+*.img
+disk.img

@@ -50,6 +50,7 @@ class PMM {
 public:
     void  init(limine_memmap_response* memmap, uint64_t hhdm);
     void* alloc_frame();
+    void* alloc_frames(size_t count);
     void  free_frame(void* addr);
     uint64_t get_hhdm() { return hhdm_offset; }
 

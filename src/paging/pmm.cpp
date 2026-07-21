@@ -103,3 +103,27 @@ void PMM::free_frame(void* addr) {
     }
     clear_bit(index);
 }
+
+void* PMM::alloc_frames(size_t count) {
+    size_t run_start = 0;
+    size_t run_length = 0;
+
+    for (size_t i = 0; i < frame_count; i++) {
+        if (!test_bit(i)) {
+            if (run_length == 0) run_start = i;
+            run_length++;
+            if (run_length == count) {
+                // gefunden -> alle count Bits setzen
+                for (size_t j = 0; j < count; j++) {
+                    set_bit(run_start + j);
+                }
+                void* addr = (void*)(run_start * 4096 + hhdm_offset);
+                memset(addr, 0, count * 4096);
+                return (void*)(run_start * 4096);
+            }
+        } else {
+            run_length = 0; // Kette unterbrochen, neu anfangen
+        }
+    }
+    return nullptr; // kein zusammenhängender Block gefunden
+}

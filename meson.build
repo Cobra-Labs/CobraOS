@@ -36,7 +36,10 @@ sources = files(
   'src/arch/syscall.cpp',
   'src/kernel/process.cpp',
   'src/kernel/tar.cpp',
-  'src/kernel/elf.cpp'
+  'src/kernel/elf.cpp',
+  'src/drivers/pci.cpp',
+  'src/drivers/virtio_blk.cpp',
+  'src/fs/ext2.cpp'
 )
 
 inc = include_directories('src/include')

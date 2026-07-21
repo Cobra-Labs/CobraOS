@@ -10,6 +10,8 @@
 #include "process.h"
 #include "tar.h"
 #include "elf.h"
+#include "../drivers/virtio_blk.h"
+#include "../fs/ext2.h"
 
 // --- Limine Setup ---
 #define LIMINE_REQ __attribute__((used, section(".limine_requests")))
@@ -134,7 +136,7 @@ VMM* volatile g_vmm = nullptr;
 extern "C" [[noreturn]] void kmain(void) {
 
     if (memmap_request.response == nullptr || hhdm_request.response == nullptr) {
-    	while (true) asm volatile("hlt");
+        while (true) asm volatile("hlt");
     }
 
     for (size_t i = 0; i < sizeof(PMM); i++) pmm_storage[i] = 0;
@@ -142,7 +144,7 @@ extern "C" [[noreturn]] void kmain(void) {
 
     g_pmm->init(
         (limine_memmap_response*)memmap_request.response,
-        ((limine_hhdm_response*)hhdm_request.response)->offset
+                ((limine_hhdm_response*)hhdm_request.response)->offset
     );
 
     for (size_t i = 0; i < sizeof(VMM); i++) vmm_storage[i] = 0;
@@ -168,9 +170,9 @@ extern "C" [[noreturn]] void kmain(void) {
     for (size_t i = 0; i < memmap_request.response->entry_count; i++) {
         limine_memmap_entry* entry = (limine_memmap_entry*)memmap_request.response->entries[i];
         if (entry->type == 6) {
-	    uint64_t phys = entry->base;
-            uint64_t virt = phys + kaddr_request.response->virtual_base 
-                                 - kaddr_request.response->physical_base;
+            uint64_t phys = entry->base;
+            uint64_t virt = phys + kaddr_request.response->virtual_base
+            - kaddr_request.response->physical_base;
             for (uint64_t off = 0; off < entry->length; off += 4096) {
                 g_vmm->map_page(virt + off, phys + off, PAGE_PRESENT | PAGE_WRITE);
             }
@@ -188,7 +190,7 @@ extern "C" [[noreturn]] void kmain(void) {
                 g_vmm->map_page(virt + off, phys + off, PAGE_PRESENT | PAGE_WRITE | PAGE_NX);
             }
         }
-    }   
+    }
 
     // Stack mappen
     uint64_t rsp;
@@ -250,7 +252,7 @@ extern "C" [[noreturn]] void kmain(void) {
     } else {
         qemu_print("init nicht gefunden!\n");
     }
-    
+
     if (framebuffer_request.response != nullptr && framebuffer_request.response->framebuffer_count > 0) {
         limine_framebuffer* fb = framebuffer_request.response->framebuffers[0];
         qemu_print("Framebuffer gefunden: ");
@@ -264,17 +266,92 @@ extern "C" [[noreturn]] void kmain(void) {
         qemu_print("Kein Framebuffer!\n");
     }
 
+    // --- virtio-blk Disk initialisieren ---
+    static uint8_t blk_storage[sizeof(VirtioBlkDevice)];
+    VirtioBlkDevice* g_blk = (VirtioBlkDevice*)blk_storage;
+
+    if (virtio_blk_init(g_blk, g_pmm)) {
+        qemu_print("virtio-blk initialisiert!\n");
+
+        static uint8_t sector_buf[512];
+        if (virtio_blk_read(g_blk, g_pmm, 0, sector_buf)) {
+            qemu_print("Sektor 0 gelesen, erste 16 Bytes: ");
+            for (int i = 0; i < 16; i++) {
+                qemu_print_hex(sector_buf[i]);
+                qemu_print(" ");
+            }
+            qemu_print("\n");
+        } else {
+            qemu_print("virtio-blk read fehlgeschlagen!\n");
+        }
+    } else {
+        qemu_print("virtio-blk init fehlgeschlagen!\n");
+    }
+
+    static uint8_t ext2_storage[sizeof(Ext2FS)];
+    Ext2FS* g_ext2 = (Ext2FS*)ext2_storage;
+
+    if (ext2_mount(g_ext2, g_blk, g_pmm)) {
+        qemu_print("ext2 gemountet!\n");
+    } else {
+        qemu_print("ext2 nicht gemountet, keine weitere fehlermeldung\n");
+    }
+    
+    uint32_t inode_num = ext2_find(g_ext2, "/hello.txt");
+    qemu_print("ext2_find(/hello.txt): ");
+    qemu_print_hex(inode_num);
+    qemu_print("\n");
+
+    if (inode_num != 0) {
+        static uint8_t file_buf[4096];
+        uint32_t len = ext2_read_file(g_ext2, inode_num, file_buf, sizeof(file_buf));
+        qemu_print("gelesen: ");
+        qemu_print_hex(len);
+        qemu_print(" Bytes: ");
+        for (uint32_t i = 0; i < len; i++) {
+            char c = file_buf[i];
+            char b[2] = { c, 0 };
+            qemu_print(b);
+        }
+        qemu_print("\n");
+    }
+    
     static uint8_t pm_storage[sizeof(ProcessManager)];
     ProcessManager* volatile g_pm = nullptr;
     for (size_t i = 0; i < sizeof(ProcessManager); i++) pm_storage[i] = 0;
     g_pm = (ProcessManager*)pm_storage;
-
     g_pm->init(g_pmm, g_vmm);
+    
+    // --- init von ext2 laden, mit Fallback auf Tar-Initramfs ---
+    uint32_t init_inode = ext2_find(g_ext2, "/init");
+    qemu_print("ext2_find(/init): ");
+    qemu_print_hex(init_inode);
+    qemu_print("\n");
 
-    if (file != nullptr) {
+    static uint8_t init_elf_buf[65536];
+    uint64_t init_file_size = 0;
+    const uint8_t* init_file = nullptr;
+
+    if (init_inode != 0) {
+        uint32_t len = ext2_read_file(g_ext2, init_inode, init_elf_buf, sizeof(init_elf_buf));
+        if (len > 0) {
+            init_file = init_elf_buf;
+            init_file_size = len;
+            qemu_print("init von ext2 geladen, Groesse: ");
+            qemu_print_hex(len);
+            qemu_print("\n");
+        }
+    }
+
+    if (init_file == nullptr) {
+        qemu_print("init nicht in ext2 gefunden, Fallback auf Tar-Initramfs!\n");
+        init_file = file;
+        init_file_size = file_size;
+    }
+
+    if (init_file != nullptr) {
         PageTable* proc_as = g_vmm->create_address_space();
-        uint64_t entry = elf_load(g_vmm, g_pmm, proc_as, file, file_size);
-
+        uint64_t entry = elf_load(g_vmm, g_pmm, proc_as, init_file, init_file_size);
         if (entry == 0) {
             qemu_print("ELF ungueltig!\n");
         } else {
@@ -285,10 +362,6 @@ extern "C" [[noreturn]] void kmain(void) {
         qemu_print("init nicht gefunden!\n");
     }
 
-
-
     qemu_print("CobraOS booted!\n");
     while (true) asm volatile("hlt");
-
 }
-
