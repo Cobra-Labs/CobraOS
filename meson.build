@@ -74,14 +74,17 @@ initramfs_tar = custom_target('initramfs_tar',
   build_by_default: true,
 )
 
+kernel_elf_path = meson.current_build_dir() / 'cobraos.elf'
+initramfs_tar_path = meson.current_build_dir() / 'initramfs.tar'
+
 shell_script = '''
   mkdir -p build_iso/iso_root/boot/limine
-  cp "$1" build_iso/iso_root/boot/
+  cp ''' + kernel_elf_path + ''' build_iso/iso_root/boot/
   cp ''' + limine_dir + '''/limine-bios-cd.bin build_iso/iso_root/
   cp ''' + limine_dir + '''/limine-uefi-cd.bin build_iso/iso_root/
   cp ''' + limine_dir + '''/limine-bios.sys build_iso/iso_root/boot/limine/
   cp ''' + src_root + '''/esp/boot/limine.conf build_iso/iso_root/boot/
-  cp "$2" build_iso/iso_root/boot/initramfs.tar
+  cp ''' + initramfs_tar_path + ''' build_iso/iso_root/boot/initramfs.tar
   ''' + xorriso.full_path() + ''' -as mkisofs -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table --efi-boot limine-uefi-cd.bin -no-emul-boot build_iso/iso_root -o @OUTPUT@
   ''' + limine.full_path() + ''' bios-install @OUTPUT@
 '''
@@ -90,5 +93,5 @@ iso_target = custom_target('cobraos_iso',
   input: [kernel_elf, initramfs_tar],
   output: 'cobraos.iso',
   build_by_default: true,
-  command: [sh, '-c', shell_script, '_', kernel_elf, initramfs_tar]
+  command: [sh, '-c', shell_script]
 )
