@@ -18,7 +18,7 @@ jobs:
     - name: Download Limine
       run: |
         git clone https://github.com/limine-bootloader/limine.git --branch=v7.x-binary --depth=1
-        cd limine && sudo make install && cd ..
+        cd limine && sudo make install PREFIX=/usr && cd ..
     - name: Setup Meson
       run: meson setup build
     - name: Build CobraOS
