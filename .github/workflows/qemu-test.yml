@@ -25,7 +25,21 @@ jobs:
       run: meson compile -C build
     - name: Boot in QEMU
       run: |
-        timeout 10 qemu-system-x86_64 -cdrom build/cobraos.iso -display none -debugcon stdio -m 256M 2>&1 | tee qemu-output.log || true
+        # Direktes Schreiben in die Datei verhindert Puffer-Verluste bei SIGTERM
+        timeout 30s qemu-system-x86_64 \
+          -cdrom build/cobraos.iso \
+          -display none \
+          -debugcon file:qemu-output.log \
+          -serial file:qemu-output.log \
+          -m 256M || true
+un: |
+            # Direktes Schreiben in die Datei verhindert Puffer-Verluste bei SIGTERM
+            timeout 30s qemu-system-x86_64 \
+              -cdrom build/cobraos.iso \
+              -display none \
+              -debugcon file:qemu-output.log \
+              -serial file:qemu-output.log \
+              -m 256M || true
     - name: Check boot output
       run: |
         if grep -q "CobraOS booted" qemu-output.log; then
