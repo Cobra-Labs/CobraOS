@@ -25,20 +25,7 @@ jobs:
       run: meson compile -C build
     - name: Boot in QEMU
       run: |
-        timeout 10 qemu-system-x86_64 -cdrom build/cobraos.iso -display none -debugcon file:qemu-output.log -m 256M || true
-    - name: check log
-      run: |
-        cat qemu-output.log
-    - name: Check boot output
-      run: |
-        if grep -q "CobraOS booted" qemu-output.log; then
-          echo "✅ Kernel boot successful"
-          exit 0
-        else
-          echo "❌ Kernel boot failed"
-          cat qemu-output.log
-          exit 1
-        fi
+        stdbuf -o0 -e0 timeout 15s qemu-system-x86_64 -cdrom build/cobraos.iso -display none -debugcon stdio -m 256M 2>&1 | grep -q -m 1 "CobraOS booted" && echo "✅ Kernel boot successful" || (echo "❌ Kernel boot failed" && exit 1)
     - name: Upload QEMU log
       uses: actions/upload-artifact@v4
       if: always()
