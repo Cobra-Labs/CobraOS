@@ -26,6 +26,9 @@ jobs:
     - name: Boot in QEMU
       run: |
         timeout 10 qemu-system-x86_64 -cdrom build/cobraos.iso -display none -debugcon file:qemu-output.log -m 256M || true
+    - name: check log
+      run: |
+        cat qemu-output.log
     - name: Check boot output
       run: |
         if grep -q "CobraOS booted" qemu-output.log; then
