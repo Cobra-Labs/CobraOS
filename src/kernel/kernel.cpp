@@ -12,6 +12,8 @@
 #include "elf.h"
 #include "../drivers/virtio_blk.h"
 #include "../fs/ext2.h"
+#include "kutil.h"
+#include "acpi.h"
 
 // --- Limine Setup ---
 #define LIMINE_REQ __attribute__((used, section(".limine_requests")))
@@ -118,9 +120,25 @@ struct limine_kernel_address_request {
     limine_kernel_address_response* response;
 };
 
+struct limine_rsdp_response {
+    uint64_t revision;
+    uint64_t address;
+};
+
+struct limine_rsdp_request {
+    uint64_t id[4];
+    uint64_t revision;
+    limine_rsdp_response* response;
+};
+
 static volatile struct limine_kernel_address_request kaddr_request LIMINE_REQ = {
     .id = { LIMINE_COMMON_MAGIC, 0x71ba76863cc55f63, 0xb2644a48c516a487 },
     .revision = 0, .response = nullptr
+};
+
+static volatile struct limine_rsdp_request rsdp_request LIMINE_REQ = {
+    .id = { LIMINE_COMMON_MAGIC, 0xc5e77b6b397e7b43, 0x27637845accdcf3c},
+    .revision = 0
 };
 
 void userspace_test() {
@@ -183,7 +201,7 @@ extern "C" [[noreturn]] void kmain(void) {
     uint64_t hhdm = hhdm_request.response->offset;
     for (size_t i = 0; i < memmap_request.response->entry_count; i++) {
         limine_memmap_entry* entry = (limine_memmap_entry*)memmap_request.response->entries[i];
-        if (entry->type == 0 || entry->type == 5 || entry->type == 6) {
+        if (entry->type == 0 || entry->type == 1 || entry->type == 5 || entry->type == 6) {
             uint64_t phys = entry->base;
             uint64_t virt = phys + hhdm;
             for (uint64_t off = 0; off < entry->length; off += 4096) {
@@ -265,6 +283,21 @@ extern "C" [[noreturn]] void kmain(void) {
     } else {
         qemu_print("Kein Framebuffer!\n");
     }
+
+    static uint8_t acpi_storage[sizeof(Acpi)];
+    Acpi* volatile g_acpi = nullptr;
+    
+    if (rsdp_request.response == nullptr) {
+        while (true) asm volatile("hlt");
+    }
+
+    for (size_t i = 0; i < sizeof(Acpi); i++) acpi_storage[i] = 0;
+    g_acpi = (Acpi*)acpi_storage;
+
+    g_acpi->init(
+        (void*)rsdp_request.response->address,
+        ((limine_hhdm_response*)hhdm_request.response)->offset
+    );
 
     // --- virtio-blk Disk initialisieren (optional -- CI hat keine angehaengte Disk) ---
     static uint8_t blk_storage[sizeof(VirtioBlkDevice)];

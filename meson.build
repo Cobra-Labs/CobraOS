@@ -39,7 +39,9 @@ sources = files(
   'src/kernel/elf.cpp',
   'src/drivers/pci.cpp',
   'src/drivers/virtio_blk.cpp',
-  'src/fs/ext2.cpp'
+  'src/fs/ext2.cpp',
+  'src/kernel/acpi.cpp',
+  'src/kernel/kutil.cpp'
 )
 
 inc = include_directories('src/include')
